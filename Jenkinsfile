@@ -84,7 +84,17 @@ pipeline {
                             returnStdout: true
                         ).trim()
                         echo "Testing pod: " + podName
-                        bat "kubectl exec " + podName + " -- wget -q -O- http://localhost:5000/health"
+                        
+                        def healthCheck = bat(
+                            script: '@echo off & kubectl exec ' + podName + ' -- python -c "import urllib.request; print(urllib.request.urlopen(\'http://localhost:5000/health\').read().decode())"',
+                            returnStdout: true
+                        ).trim()
+                        
+                        echo "Health check response: " + healthCheck
+                        
+                        if (!healthCheck.contains('healthy')) {
+                            error("Health check failed - service is not healthy")
+                        }
                     }
                 }
             }
@@ -105,9 +115,16 @@ pipeline {
             steps {
                 script {
                     withKubeConfig([credentialsId: env.KUBECONFIG_CREDENTIALS]) {
-                        sleep(time: 20, unit: 'SECONDS')
+                        sleep(time: 10, unit: 'SECONDS')
                         bat 'kubectl get pods -l app=flask-app'
                         bat 'kubectl get service flask-app-service'
+                        
+                        def activeVersion = bat(
+                            script: '@echo off & kubectl get service flask-app-service -o jsonpath="{.spec.selector.version}"',
+                            returnStdout: true
+                        ).trim()
+                        
+                        echo "Active version confirmed: " + activeVersion
                     }
                 }
             }
@@ -130,7 +147,12 @@ pipeline {
     
     post {
         success {
-            echo "Deployment successful! Active environment: " + env.NEW_ENV
+            echo "=========================================="
+            echo "  DEPLOYMENT SUCCESSFUL!"
+            echo "=========================================="
+            echo "Active environment: " + env.NEW_ENV
+            echo "Build number: " + env.BUILD_NUMBER
+            echo "=========================================="
         }
         failure {
             echo "Deployment failed! Rolling back..."
@@ -138,6 +160,7 @@ pipeline {
                 try {
                     withKubeConfig([credentialsId: env.KUBECONFIG_CREDENTIALS]) {
                         bat 'kubectl patch service flask-app-service -p "{\\"spec\\":{\\"selector\\":{\\"version\\":\\"' + env.CURRENT_ENV + '\\"}}}"'
+                        echo "Rollback completed - traffic restored to " + env.CURRENT_ENV
                     }
                 } catch (Exception e) {
                     echo "Rollback failed: " + e.message
