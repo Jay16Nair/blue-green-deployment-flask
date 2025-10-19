@@ -12,8 +12,8 @@ pipeline {
             steps {
                 script {
                     try {
-                        def currentVersion = sh(
-                            script: 'kubectl get service flask-app-service -o jsonpath="{.spec.selector.version}" 2>/dev/null || echo blue',
+                        def currentVersion = bat(
+                            script: '@echo off & kubectl get service flask-app-service -o jsonpath="{.spec.selector.version}" 2>nul || echo blue',
                             returnStdout: true
                         ).trim()
                         
@@ -67,8 +67,8 @@ pipeline {
             steps {
                 script {
                     withKubeConfig([credentialsId: env.KUBECONFIG_CREDENTIALS]) {
-                        sh "kubectl apply -f k8s/" + env.NEW_ENV + "-deployment.yaml"
-                        sh "kubectl rollout status deployment/flask-app-" + env.NEW_ENV + " --timeout=5m"
+                        bat "kubectl apply -f k8s\\" + env.NEW_ENV + "-deployment.yaml"
+                        bat "kubectl rollout status deployment/flask-app-" + env.NEW_ENV + " --timeout=5m"
                     }
                 }
             }
@@ -78,12 +78,12 @@ pipeline {
             steps {
                 script {
                     withKubeConfig([credentialsId: env.KUBECONFIG_CREDENTIALS]) {
-                        sh 'sleep 10'
-                        def podName = sh(
-                            script: 'kubectl get pods -l app=flask-app,version=' + env.NEW_ENV + ' -o jsonpath="{.items[0].metadata.name}"',
+                        bat 'timeout /t 10 /nobreak'
+                        def podName = bat(
+                            script: '@echo off & kubectl get pods -l app=flask-app,version=' + env.NEW_ENV + ' -o jsonpath="{.items[0].metadata.name}"',
                             returnStdout: true
                         ).trim()
-                        sh "kubectl exec " + podName + " -- wget -q -O- http://localhost:5000/health"
+                        bat "kubectl exec " + podName + " -- wget -q -O- http://localhost:5000/health"
                     }
                 }
             }
@@ -93,7 +93,7 @@ pipeline {
             steps {
                 script {
                     withKubeConfig([credentialsId: env.KUBECONFIG_CREDENTIALS]) {
-                        sh 'kubectl patch service flask-app-service -p \'{"spec":{"selector":{"version":"' + env.NEW_ENV + '"}}}\''
+                        bat 'kubectl patch service flask-app-service -p "{\\"spec\\":{\\"selector\\":{\\"version\\":\\"' + env.NEW_ENV + '\\"}}}"'
                         echo "Traffic switched to " + env.NEW_ENV + " environment"
                     }
                 }
@@ -105,8 +105,8 @@ pipeline {
                 script {
                     withKubeConfig([credentialsId: env.KUBECONFIG_CREDENTIALS]) {
                         sleep(time: 20, unit: 'SECONDS')
-                        sh 'kubectl get pods -l app=flask-app'
-                        sh 'kubectl get service flask-app-service'
+                        bat 'kubectl get pods -l app=flask-app'
+                        bat 'kubectl get service flask-app-service'
                     }
                 }
             }
@@ -119,7 +119,7 @@ pipeline {
                 
                 script {
                     withKubeConfig([credentialsId: env.KUBECONFIG_CREDENTIALS]) {
-                        sh "kubectl scale deployment flask-app-" + env.CURRENT_ENV + " --replicas=0"
+                        bat "kubectl scale deployment flask-app-" + env.CURRENT_ENV + " --replicas=0"
                         echo "Scaled down " + env.CURRENT_ENV + " environment"
                     }
                 }
@@ -136,7 +136,7 @@ pipeline {
             script {
                 try {
                     withKubeConfig([credentialsId: env.KUBECONFIG_CREDENTIALS]) {
-                        sh 'kubectl patch service flask-app-service -p \'{"spec":{"selector":{"version":"' + env.CURRENT_ENV + '"}}}\''
+                        bat 'kubectl patch service flask-app-service -p "{\\"spec\\":{\\"selector\\":{\\"version\\":\\"' + env.CURRENT_ENV + '\\"}}}"'
                     }
                 } catch (Exception e) {
                     echo "Rollback failed: " + e.message
