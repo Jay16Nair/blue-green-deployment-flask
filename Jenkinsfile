@@ -78,11 +78,12 @@ pipeline {
             steps {
                 script {
                     withKubeConfig([credentialsId: env.KUBECONFIG_CREDENTIALS]) {
-                        bat 'timeout /t 10 /nobreak'
+                        sleep(time: 10, unit: 'SECONDS')
                         def podName = bat(
                             script: '@echo off & kubectl get pods -l app=flask-app,version=' + env.NEW_ENV + ' -o jsonpath="{.items[0].metadata.name}"',
                             returnStdout: true
                         ).trim()
+                        echo "Testing pod: " + podName
                         bat "kubectl exec " + podName + " -- wget -q -O- http://localhost:5000/health"
                     }
                 }
