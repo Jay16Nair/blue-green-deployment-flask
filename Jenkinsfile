@@ -80,11 +80,11 @@
             steps {
                 script {
                     withKubeConfig([credentialsId: KUBECONFIG_CREDENTIALS]) {
-                        sh """
+                        sh '''
                             sleep 10
-                            POD=$(kubectl get pods -l app=flask-app,version=${NEW_ENV} -o jsonpath='{.items[0].metadata.name}')
-                            kubectl exec $POD -- wget -q -O- http://localhost:5000/health
-                        """
+                            POD=\
+                            kubectl exec \ -- wget -q -O- http://localhost:5000/health
+                        '''
                     }
                 }
             }
@@ -150,7 +150,7 @@
                     echo "Rollback failed: ${e.message}"
                 }
             }
-}
+        }
         always {
             cleanWs()
         }
