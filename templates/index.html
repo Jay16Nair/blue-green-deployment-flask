@@ -1,0 +1,89 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Home - Blue-Green Deployment{% endblock %}
+
+{% block content %}
+<div class="hero">
+    <div class="container">
+        <div class="hero-content">
+            <h1 class="animate-fade-in">Welcome to Blue-Green Deployment!</h1>
+            <p class="subtitle animate-slide-up">Automated CI/CD with Zero Downtime</p>
+            <div class="version-display animate-scale">
+                <div class="version-circle">
+                    <span class="version-text">{{ version|upper }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <section class="info-cards">
+        <div class="card animate-fade-in" style="animation-delay: 0.2s">
+            <div class="card-icon">🖥️</div>
+            <h3>Hostname</h3>
+            <p class="card-value">{{ hostname }}</p>
+        </div>
+        
+        <div class="card animate-fade-in" style="animation-delay: 0.4s">
+            <div class="card-icon">⏰</div>
+            <h3>Current Time</h3>
+            <p class="card-value">{{ current_time }}</p>
+        </div>
+        
+        <div class="card animate-fade-in" style="animation-delay: 0.6s">
+            <div class="card-icon">👥</div>
+            <h3>Visitors Today</h3>
+            <p class="card-value">{{ visitor_count }}</p>
+        </div>
+    </section>
+
+    <section class="stats-section">
+        <h2>Live System Stats</h2>
+        <div class="stats-grid" id="stats-container">
+            <div class="stat-item">
+                <span class="stat-label">Version:</span>
+                <span class="stat-value" id="stat-version">Loading...</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Requests:</span>
+                <span class="stat-value" id="stat-requests">Loading...</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Response Time:</span>
+                <span class="stat-value" id="stat-response">Loading...</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Status:</span>
+                <span class="stat-value status-healthy" id="stat-status">Loading...</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="features">
+        <h2>Deployment Features</h2>
+        <div class="features-grid">
+            <div class="feature-item">
+                <div class="feature-icon">🔄</div>
+                <h3>Zero Downtime</h3>
+                <p>Seamless deployments without service interruption</p>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon">⚡</div>
+                <h3>Instant Rollback</h3>
+                <p>Quick recovery if issues are detected</p>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon">🎯</div>
+                <h3>Traffic Control</h3>
+                <p>Precise control over environment switching</p>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon">📊</div>
+                <h3>Real-time Monitoring</h3>
+                <p>Live health checks and performance metrics</p>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}

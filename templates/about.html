@@ -1,0 +1,72 @@
+﻿{% extends "base.html" %}
+
+{% block title %}About - Blue-Green Deployment{% endblock %}
+
+{% block content %}
+<div class="container about-page">
+    <section class="about-hero">
+        <h1>About Blue-Green Deployment</h1>
+        <p class="lead">A production-ready deployment strategy for modern applications</p>
+    </section>
+
+    <section class="about-content">
+        <div class="content-block">
+            <h2>🎯 What is Blue-Green Deployment?</h2>
+            <p>Blue-green deployment is a release management strategy that reduces downtime and risk by running two identical production environments called Blue and Green. At any time, only one environment is live and serving production traffic.</p>
+        </div>
+
+        <div class="content-block">
+            <h2>🏗️ Technology Stack</h2>
+            <ul class="tech-list">
+                <li><strong>Application:</strong> Flask (Python Web Framework)</li>
+                <li><strong>Containerization:</strong> Docker</li>
+                <li><strong>Orchestration:</strong> Kubernetes</li>
+                <li><strong>CI/CD:</strong> Jenkins Pipeline</li>
+                <li><strong>Registry:</strong> Docker Hub</li>
+            </ul>
+        </div>
+
+        <div class="content-block">
+            <h2>✨ Key Benefits</h2>
+            <div class="benefits-grid">
+                <div class="benefit-card">
+                    <h3>Zero Downtime</h3>
+                    <p>Switch between environments instantly without affecting users</p>
+                </div>
+                <div class="benefit-card">
+                    <h3>Easy Rollback</h3>
+                    <p>Revert to previous version within seconds if issues arise</p>
+                </div>
+                <div class="benefit-card">
+                    <h3>Safe Testing</h3>
+                    <p>Test new versions in production-like environment before going live</p>
+                </div>
+                <div class="benefit-card">
+                    <h3>Reduced Risk</h3>
+                    <p>Minimize deployment risks with proven strategy</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-block">
+            <h2>🔄 Deployment Process</h2>
+            <ol class="process-list">
+                <li>Code changes are pushed to GitHub repository</li>
+                <li>Jenkins pipeline is triggered automatically</li>
+                <li>New Docker image is built and pushed to Docker Hub</li>
+                <li>Inactive environment (Blue/Green) is updated with new version</li>
+                <li>Health checks and tests are performed</li>
+                <li>Traffic is switched to the newly deployed environment</li>
+                <li>Old environment remains as backup for quick rollback</li>
+            </ol>
+        </div>
+
+        <div class="version-info">
+            <h3>Current Environment Information</h3>
+            <p><strong>Active Version:</strong> <span class="version-tag">{{ version|upper }}</span></p>
+            <p><strong>Deployment Strategy:</strong> Blue-Green</p>
+            <p><strong>Status:</strong> <span class="status-badge">Active</span></p>
+        </div>
+    </section>
+</div>
+{% endblock %}
