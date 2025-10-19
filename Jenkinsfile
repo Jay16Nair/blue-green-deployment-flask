@@ -5,8 +5,6 @@
         DOCKER_HUB_REPO = 'jay16nair/flask-blue-green'
         DOCKER_HUB_CREDENTIALS = 'dockerhub-credentials'
         KUBECONFIG_CREDENTIALS = 'kubeconfig-credentials'
-        CURRENT_ENV = 'blue'
-        NEW_ENV = 'green'
     }
     
     stages {
@@ -15,7 +13,7 @@
                 script {
                     try {
                         def currentVersion = sh(
-                            script: "kubectl get service flask-app-service -o jsonpath='{.spec.selector.version}' 2>/dev/null || echo 'blue'",
+                            script: 'kubectl get service flask-app-service -o jsonpath="{.spec.selector.version}" 2>/dev/null || echo blue',
                             returnStdout: true
                         ).trim()
                         
@@ -27,8 +25,8 @@
                             env.NEW_ENV = 'blue'
                         }
                         
-                        echo "Current Environment: ${env.CURRENT_ENV}"
-                        echo "Deploying to: ${env.NEW_ENV}"
+                        echo "Current Environment: " + env.CURRENT_ENV
+                        echo "Deploying to: " + env.NEW_ENV
                     } catch (Exception e) {
                         echo "Service not found, starting with blue environment"
                         env.CURRENT_ENV = 'blue'
@@ -47,7 +45,8 @@
         stage('Build Docker Image') {
             steps {
                 script {
-                    docker.build("${DOCKER_HUB_REPO}:${NEW_ENV}")
+                    def imageName = env.DOCKER_HUB_REPO + ':' + env.NEW_ENV
+                    docker.build(imageName)
                 }
             }
         }
@@ -55,9 +54,10 @@
         stage('Push to Docker Hub') {
             steps {
                 script {
-                    docker.withRegistry('https://registry.hub.docker.com', DOCKER_HUB_CREDENTIALS) {
-                        docker.image("${DOCKER_HUB_REPO}:${NEW_ENV}").push()
-                        docker.image("${DOCKER_HUB_REPO}:${NEW_ENV}").push("${BUILD_NUMBER}")
+                    docker.withRegistry('https://registry.hub.docker.com', env.DOCKER_HUB_CREDENTIALS) {
+                        def imageName = env.DOCKER_HUB_REPO + ':' + env.NEW_ENV
+                        docker.image(imageName).push()
+                        docker.image(imageName).push(env.BUILD_NUMBER)
                     }
                 }
             }
@@ -66,11 +66,9 @@
         stage('Deploy to New Environment') {
             steps {
                 script {
-                    withKubeConfig([credentialsId: KUBECONFIG_CREDENTIALS]) {
-                        sh """
-                            kubectl apply -f k8s/${NEW_ENV}-deployment.yaml
-                            kubectl rollout status deployment/flask-app-${NEW_ENV} --timeout=5m
-                        """
+                    withKubeConfig([credentialsId: env.KUBECONFIG_CREDENTIALS]) {
+                        sh "kubectl apply -f k8s/" + env.NEW_ENV + "-deployment.yaml"
+                        sh "kubectl rollout status deployment/flask-app-" + env.NEW_ENV + " --timeout=5m"
                     }
                 }
             }
@@ -79,12 +77,13 @@
         stage('Run Health Checks') {
             steps {
                 script {
-                    withKubeConfig([credentialsId: KUBECONFIG_CREDENTIALS]) {
-                        sh '''
-                            sleep 10
-                            POD=\
-                            kubectl exec \ -- wget -q -O- http://localhost:5000/health
-                        '''
+                    withKubeConfig([credentialsId: env.KUBECONFIG_CREDENTIALS]) {
+                        sh 'sleep 10'
+                        def podName = sh(
+                            script: 'kubectl get pods -l app=flask-app,version=' + env.NEW_ENV + ' -o jsonpath="{.items[0].metadata.name}"',
+                            returnStdout: true
+                        ).trim()
+                        sh "kubectl exec " + podName + " -- wget -q -O- http://localhost:5000/health"
                     }
                 }
             }
@@ -93,11 +92,9 @@
         stage('Switch Traffic') {
             steps {
                 script {
-                    withKubeConfig([credentialsId: KUBECONFIG_CREDENTIALS]) {
-                        sh """
-                            kubectl patch service flask-app-service -p '{\"spec\":{\"selector\":{\"version\":\"${NEW_ENV}\"}}}'
-                        """
-                        echo "Traffic switched to ${NEW_ENV} environment"
+                    withKubeConfig([credentialsId: env.KUBECONFIG_CREDENTIALS]) {
+                        sh 'kubectl patch service flask-app-service -p \'{"spec":{"selector":{"version":"' + env.NEW_ENV + '"}}}\''
+                        echo "Traffic switched to " + env.NEW_ENV + " environment"
                     }
                 }
             }
@@ -106,12 +103,10 @@
         stage('Verify Deployment') {
             steps {
                 script {
-                    withKubeConfig([credentialsId: KUBECONFIG_CREDENTIALS]) {
+                    withKubeConfig([credentialsId: env.KUBECONFIG_CREDENTIALS]) {
                         sleep(time: 20, unit: 'SECONDS')
-                        sh """
-                            kubectl get pods -l app=flask-app
-                            kubectl get service flask-app-service
-                        """
+                        sh 'kubectl get pods -l app=flask-app'
+                        sh 'kubectl get service flask-app-service'
                     }
                 }
             }
@@ -119,14 +114,13 @@
         
         stage('Scale Down Old Environment') {
             steps {
-                input message: "Scale down ${CURRENT_ENV} environment?", 
-                      ok: 'Scale Down',
-                      submitter: 'admin'
+                input message: 'Scale down old environment?',
+                      ok: 'Scale Down'
                 
                 script {
-                    withKubeConfig([credentialsId: KUBECONFIG_CREDENTIALS]) {
-                        sh "kubectl scale deployment flask-app-${CURRENT_ENV} --replicas=0"
-                        echo "Scaled down ${CURRENT_ENV} environment"
+                    withKubeConfig([credentialsId: env.KUBECONFIG_CREDENTIALS]) {
+                        sh "kubectl scale deployment flask-app-" + env.CURRENT_ENV + " --replicas=0"
+                        echo "Scaled down " + env.CURRENT_ENV + " environment"
                     }
                 }
             }
@@ -135,19 +129,17 @@
     
     post {
         success {
-            echo "Deployment successful! Active environment: ${NEW_ENV}"
+            echo "Deployment successful! Active environment: " + env.NEW_ENV
         }
         failure {
             echo "Deployment failed! Rolling back..."
             script {
                 try {
-                    withKubeConfig([credentialsId: KUBECONFIG_CREDENTIALS]) {
-                        sh """
-                            kubectl patch service flask-app-service -p '{\"spec\":{\"selector\":{\"version\":\"${CURRENT_ENV}\"}}}'
-                        """
+                    withKubeConfig([credentialsId: env.KUBECONFIG_CREDENTIALS]) {
+                        sh 'kubectl patch service flask-app-service -p \'{"spec":{"selector":{"version":"' + env.CURRENT_ENV + '"}}}\''
                     }
                 } catch (Exception e) {
-                    echo "Rollback failed: ${e.message}"
+                    echo "Rollback failed: " + e.message
                 }
             }
         }
